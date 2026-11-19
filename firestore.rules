@@ -1,0 +1,142 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Core Helpers
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isEmailVerified() && (
+        request.auth.token.email == 'moneda1solperu@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // Admin registry (read-only for self, no client self-promotion)
+    match /admins/{adminId} {
+      allow get: if isSignedIn() && request.auth.uid == adminId;
+      allow list, create, update, delete: if false;
+    }
+
+    // MediaAsset Validation Blueprint
+    function isValidMediaAsset(data) {
+      return data.keys().hasAll([
+          'title', 'subtitle', 'mediaType', 'url', 'placement', 'sector', 'sortOrder', 'authorUid', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'title', 'subtitle', 'mediaType', 'url', 'placement', 'sector', 'sortOrder', 'authorUid', 'createdAt', 'updatedAt'
+        ]) &&
+        data.title is string && data.title.size() >= 2 && data.title.size() <= 120 &&
+        data.subtitle is string && data.subtitle.size() <= 240 &&
+        data.mediaType in ['image', 'video'] &&
+        data.url is string && data.url.size() >= 5 && data.url.size() <= 1000 &&
+        data.url.matches('^(https?://|/).+$') &&
+        data.placement in ['showcase', 'gallery'] &&
+        data.sector in ['izcuchaca', 'zurite', 'huarocondo', 'general'] &&
+        (data.sortOrder is int || data.sortOrder is float) &&
+        data.sortOrder >= 0 && data.sortOrder <= 10000 &&
+        data.authorUid is string && data.authorUid.size() >= 1 && data.authorUid.size() <= 128 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    match /mediaAssets/{assetId} {
+      allow get: if isValidId(assetId);
+      allow list: if true;
+      allow create: if isValidId(assetId) &&
+        isAdmin() &&
+        isValidMediaAsset(incoming()) &&
+        incoming().authorUid == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isValidId(assetId) &&
+        isAdmin() &&
+        isValidMediaAsset(incoming()) &&
+        incoming().authorUid == existing().authorUid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'title', 'subtitle', 'mediaType', 'url', 'placement', 'sector', 'sortOrder', 'updatedAt'
+        ]);
+      allow delete: if isValidId(assetId) && isAdmin();
+    }
+
+    // PropertyInquiry Validation Blueprint
+    function isValidInquiry(data) {
+      return data.keys().hasAll([
+          'userId', 'clientName', 'clientEmail', 'clientPhone', 'sector', 'areaSqm', 'modality', 'estimatedUsd', 'visitDate', 'notes', 'status', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'userId', 'clientName', 'clientEmail', 'clientPhone', 'sector', 'areaSqm', 'modality', 'estimatedUsd', 'visitDate', 'notes', 'status', 'createdAt', 'updatedAt'
+        ]) &&
+        data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.clientName is string && data.clientName.size() >= 2 && data.clientName.size() <= 120 &&
+        data.clientEmail is string && data.clientEmail.size() >= 5 && data.clientEmail.size() <= 160 &&
+        data.clientPhone is string && data.clientPhone.size() >= 6 && data.clientPhone.size() <= 40 &&
+        data.sector in ['izcuchaca', 'zurite', 'huarocondo'] &&
+        (data.areaSqm is int || data.areaSqm is float) &&
+        data.areaSqm >= 100 && data.areaSqm <= 50000 &&
+        data.modality in ['terreno', 'villa'] &&
+        (data.estimatedUsd is int || data.estimatedUsd is float) &&
+        data.estimatedUsd >= 1000 && data.estimatedUsd <= 10000000 &&
+        data.visitDate is string && data.visitDate.size() >= 4 && data.visitDate.size() <= 40 &&
+        data.notes is string && data.notes.size() <= 800 &&
+        data.status in ['pending', 'scheduled', 'completed'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    match /inquiries/{inquiryId} {
+      allow get: if isValidId(inquiryId) && isEmailVerified() && (
+        existing().userId == request.auth.uid || isAdmin()
+      );
+      allow list: if isEmailVerified() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow create: if isValidId(inquiryId) &&
+        isEmailVerified() &&
+        isValidInquiry(incoming()) &&
+        incoming().userId == request.auth.uid &&
+        incoming().status == 'pending' &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isValidId(inquiryId) &&
+        isEmailVerified() &&
+        isValidInquiry(incoming()) &&
+        incoming().userId == existing().userId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          (isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'visitDate', 'notes', 'updatedAt'])) ||
+          (existing().userId == request.auth.uid &&
+            existing().status == 'pending' &&
+            incoming().status == 'pending' &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['visitDate', 'notes', 'updatedAt']))
+        );
+      allow delete: if isValidId(inquiryId) && isEmailVerified() && (
+        existing().userId == request.auth.uid || isAdmin()
+      );
+    }
+  }
+}
