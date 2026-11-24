@@ -306,10 +306,13 @@ export function MediaStudioSection({
       <div className="container">
         <div className="studio-header">
           <div>
-            <span className="eyebrow-text">
-              Archivo audiovisual real · Dron DJI y reconocimiento de campo en Anta
-            </span>
-            <h2 className="section-title">Estudio de Medios Anta Terra.</h2>
+            <div className="eyebrow-rule-row">
+              <span className="eyebrow-text">
+                Archivo audiovisual real · Dron DJI y reconocimiento de campo
+              </span>
+              <span className="eyebrow-rule" aria-hidden="true" />
+            </div>
+            <h2 className="section-title">Archivo Audiovisual ALASO.</h2>
             <p className="section-sub">
               Explora nuestras tomas aéreas reales, vuelos 4K en dron sobre el
               polígono de terrenos y visitas en sitio. Haz clic en cualquier
@@ -332,7 +335,7 @@ export function MediaStudioSection({
                 </button>
                 <button
                   type="button"
-                  className="btn btn-ghost btn-sm"
+                  className="btn btn-outline btn-sm"
                   onClick={() => void signOut(auth)}
                 >
                   Salir ({user.email?.split('@')[0]})
@@ -341,7 +344,7 @@ export function MediaStudioSection({
             ) : (
               <button
                 type="button"
-                className="btn btn-ghost btn-sm"
+                className="btn btn-outline btn-sm"
                 onClick={() => void handleSignIn()}
               >
                 <UploadCloud size={16} strokeWidth={1.8} />
@@ -454,7 +457,7 @@ export function MediaStudioSection({
                       <option value="izcuchaca">Valle de Izcuchaca</option>
                       <option value="zurite">Laderas de Zurite</option>
                       <option value="huarocondo">Mirador Huarocondo</option>
-                      <option value="general">General Anta Terra</option>
+                      <option value="general">General ALASO Anta</option>
                     </select>
                   </label>
 

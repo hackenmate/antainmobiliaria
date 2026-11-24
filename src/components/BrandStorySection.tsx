@@ -1,52 +1,49 @@
-import { useState } from 'react';
-import { CalendarCheck, Compass } from 'lucide-react';
+import {
+  ArrowRight,
+  CalendarCheck,
+  Compass,
+  Gem,
+  Handshake,
+  Landmark,
+  ShieldCheck,
+} from 'lucide-react';
 import type { AgentName } from '../data/properties';
-import { BrandEmblem } from './BrandEmblem';
+import { AlasoLogo } from './AlasoLogo';
 import alisonPortrait from '../assets/images/agent_alison_mariano_man_1795038930516.jpg';
 import joseLuisPortrait from '../assets/images/agent_jose_luis_1795029238283.jpg';
+import architecturalPavilion from '../assets/images/alaso_modern_pavilion_1795493777970.jpg';
 
 interface BrandStorySectionProps {
   selectedAgent: AgentName;
   onScheduleWithAgent: (agent: AgentName) => void;
 }
 
-interface EmblemPart {
-  id: 'leaf' | 'apu' | 'home' | 'terraces';
-  label: string;
-  role: string;
-  meaning: string;
-}
-
-const EMBLEM_PARTS: EmblemPart[] = [
+const BRAND_VALUES = [
   {
-    id: 'leaf',
-    label: 'La Hoja Andina',
-    role: 'Custodia ecológica y bosques de eucalipto',
-    meaning:
-      'Representa el respeto por las cortinas arbóreas, el microclima de Anta y el aprovechamiento agrícola sostenible sin urbanización agresiva.',
+    id: 'confianza',
+    label: 'Confianza',
+    detail: 'Partidas SUNARP verificadas y transparencia documental.',
+    Icon: ShieldCheck,
   },
   {
-    id: 'apu',
-    label: 'Silueta del Apu',
-    role: 'Topografía real a 3,345 m s.n.m.',
-    meaning:
-      'Evoca la cordillera tutelar que protege la Pampa de Anta y recuerda nuestra regla constructiva: diseñar siempre a favor de la pendiente natural.',
+    id: 'solidez',
+    label: 'Solidez',
+    detail: 'Criterio constructivo y habilitación técnica con estándar de obra.',
+    Icon: Landmark,
   },
   {
-    id: 'home',
-    label: 'Estancia de Dos Aguas',
-    role: 'Arquitectura contemporánea en diálogo andino',
-    meaning:
-      'Simboliza la vivienda honesta de piedra, madera y grandes paños de luz pensada como refugio familiar o inversión patrimonial duradera.',
+    id: 'modernidad',
+    label: 'Modernidad',
+    detail: 'Arquitectura contemporánea, drones 4K y levantamiento georreferenciado.',
+    Icon: Gem,
   },
   {
-    id: 'terraces',
-    label: 'Andenes del Valle',
-    role: 'Parcelación orgánica y valor del suelo',
-    meaning:
-      'Franjas curvas inspiradas en la andenería cusqueña que reflejan la transición entre bosque profundo, campiña fértil, luz solar de altura y arcilla andina.',
+    id: 'compromiso',
+    label: 'Compromiso',
+    detail: 'Acompañamiento directo de principio a fin sin intermediarios.',
+    Icon: Handshake,
   },
-];
+] as const;
 
 const BRAND_PILLARS = [
   {
@@ -57,9 +54,9 @@ const BRAND_PILLARS = [
   },
   {
     num: '02.',
-    title: 'Trabajar con la Pendiente',
+    title: 'Diseño y Trabajar con la Pendiente',
     detail:
-      'Inspirados en las inmobiliarias boutique del Valle Sagrado, trazamos lotes orgánicos con frente a vía afirmada y drenaje natural, preservando la vista limpia hacia los cerros.',
+      'Trazamos lotizaciones orgánicas con frente a vía afirmada y drenaje natural, cuidando el asoleamiento andino y preservando las vistas limpias hacia los cerros de Anta.',
   },
   {
     num: '03.',
@@ -90,7 +87,7 @@ const ADVISORS: AdvisorProfile[] = [
       '«La plusvalía real empieza en la tranquilidad legal: ningún paisaje vale la pena si el título no está impecable desde el primer día.»',
     territory: 'Valle de Izcuchaca · Corredor Cusco – Chinchero',
     image: alisonPortrait,
-    alt: 'Alison Mariano, socio director de Realty Anta Terra, sosteniendo planos topográficos frente a un pabellón de piedra y vidrio en Cusco',
+    alt: 'Alison Mariano, socio director de ALASO Constructora e Inmobiliaria, sosteniendo planos topográficos frente a un pabellón de piedra y vidrio en Cusco',
   },
   {
     name: 'José Luis',
@@ -98,10 +95,10 @@ const ADVISORS: AdvisorProfile[] = [
     focus: 'Fotogrametría Aérea · Factibilidad y Accesos',
     bio: 'Responsable del reconocimiento técnico en terreno, levantamientos topográficos georreferenciados y diseño de lotización orgánica. Guía las visitas presenciales mostrando linderos reales, orientación solar, accesibilidad vial y potencial constructivo de cada parcela.',
     ethos:
-      '«Caminar el lote al atardecer revela lo que un plano plano oculta: por dónde corre el viento, dónde nace la vista y cómo emplazar la casa.»',
+      '«Caminar el lote al atardecer revela lo que un plano oculta: por dónde corre el viento, dónde nace la vista y cómo emplazar la casa.»',
     territory: 'Laderas de Zurite · Mirador Huarocondo',
     image: joseLuisPortrait,
-    alt: 'José Luis, director de campo de Realty Anta Terra, observando el valle andino con mapas topográficos en Anta, Cusco',
+    alt: 'José Luis, director de campo de ALASO Constructora e Inmobiliaria, observando el valle andino con mapas topográficos en Anta, Cusco',
   },
 ];
 
@@ -109,30 +106,64 @@ export function BrandStorySection({
   selectedAgent,
   onScheduleWithAgent,
 }: BrandStorySectionProps) {
-  const [activePartId, setActivePartId] = useState<EmblemPart['id']>('leaf');
-
-  const activePart =
-    EMBLEM_PARTS.find((p) => p.id === activePartId) ?? EMBLEM_PARTS[0];
-
   return (
-    <section id="historia" className="brand-story-section">
+    <section id="nosotros" className="sobre-alaso-section">
       <div className="container">
-        {/* Part 1: Brand Origin Story & Logo Meaning */}
-        <div className="brand-story-grid">
-          <div className="brand-manifesto">
-            <span className="eyebrow-text">
-              Identidad de marca · Nacida en la Pampa de Anta
-            </span>
+        {/* Part 1: Sobre ALASO Split Layout */}
+        <div className="sobre-alaso-grid">
+          <div className="sobre-visual-col">
+            <div className="sobre-photo-frame">
+              <img
+                src={architecturalPavilion}
+                alt="Residencia contemporánea de concreto, madera y cristal diseñada para el valle andino de Anta, Cusco"
+                loading="lazy"
+                decoding="async"
+                referrerPolicy="no-referrer"
+                className="sobre-photo-img"
+              />
+            </div>
+
+            <div className="alaso-identity-panel">
+              <div className="alaso-identity-crest">
+                <AlasoLogo variant="dark-surface" height={96} />
+              </div>
+              <div className="alaso-values-grid">
+                {BRAND_VALUES.map((val) => {
+                  const IconComponent = val.Icon;
+                  return (
+                    <div key={val.id} className="alaso-value-item">
+                      <IconComponent
+                        size={18}
+                        strokeWidth={1.7}
+                        className="alaso-value-icon"
+                      />
+                      <div>
+                        <strong className="alaso-value-label">{val.label}</strong>
+                        <p className="alaso-value-detail">{val.detail}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div className="sobre-editorial-col">
+            <div className="eyebrow-rule-row">
+              <span className="eyebrow-text">Sobre ALASO</span>
+              <span className="eyebrow-rule" aria-hidden="true" />
+            </div>
+
             <h2 className="section-title">
-              Más que lotes: custodia de tierra y paisaje andino.
+              Construimos confianza a través de cada proyecto.
             </h2>
-            <p className="brand-lead">
-              Realty Anta Terra surge como una firma inmobiliaria boutique
-              dedicada exclusivamente a la provincia de Anta, a 25 minutos del
-              Cusco y en la puerta estratégica hacia el Valle Sagrado y
-              Chinchero. No operamos como intermediarios de volumen: curamos
-              paños de tierra con historia agrícola, respaldo legal verificable y
-              vocación arquitectónica.
+
+            <p className="sobre-lead">
+              ALASO — Constructora e Inmobiliaria desarrolla soluciones
+              constructivas y habilitación de terrenos en la provincia de Anta,
+              a 25 minutos del Cusco y sobre el corredor estratégico hacia
+              Chinchero y el Valle Sagrado. Trabajamos con rigor técnico,
+              respaldo legal verificable y visión arquitectónica de largo plazo.
             </p>
 
             <div className="brand-pillars-list">
@@ -148,66 +179,26 @@ export function BrandStorySection({
                 </div>
               ))}
             </div>
+
+            <div className="sobre-cta-row">
+              <a href="#configurador" className="btn btn-primary">
+                <span>Explorar sectores</span>
+                <ArrowRight size={16} strokeWidth={2} />
+              </a>
+            </div>
           </div>
-
-          <aside className="brand-emblem-panel">
-            <div className="brand-emblem-stage">
-              <div className="brand-emblem-lockup">
-                <BrandEmblem size={92} className="brand-emblem-svg" />
-                <div className="brand-emblem-wordmark">
-                  <strong>REALTY ANTA TERRA</strong>
-                  <span>BIENES RAÍCES · ANTA, CUSCO</span>
-                </div>
-              </div>
-              <p className="brand-emblem-caption">
-                Significado del emblema oficial: selecciona cada trazo para
-                explorar su arraigo territorial en el valle.
-              </p>
-            </div>
-
-            <div
-              className="emblem-part-tabs"
-              role="tablist"
-              aria-label="Elementos del logotipo de Realty Anta Terra"
-            >
-              {EMBLEM_PARTS.map((part) => (
-                <button
-                  key={part.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={activePartId === part.id}
-                  className={`emblem-part-btn${
-                    activePartId === part.id ? ' is-active' : ''
-                  }`}
-                  onClick={() => setActivePartId(part.id)}
-                >
-                  {part.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="emblem-part-detail">
-              <div className="emblem-detail-meta">
-                <span>{activePart.role}</span>
-              </div>
-              <p className="emblem-detail-copy">{activePart.meaning}</p>
-            </div>
-
-            <div className="emblem-seal-footer tabular-nums">
-              <span>Pampa de Anta · 3,345 m s.n.m.</span>
-              <span aria-hidden="true">·</span>
-              <span>Corredor Cusco – Chinchero</span>
-            </div>
-          </aside>
         </div>
 
-        {/* Part 2: Editorial Principals / Agents Section */}
+        {/* Part 2: Dirección y Equipo en Territorio */}
         <div className="advisors-block">
           <div className="advisors-header">
             <div>
-              <span className="eyebrow-text">
-                Dirección y curadores en territorio
-              </span>
+              <div className="eyebrow-rule-row">
+                <span className="eyebrow-text">
+                  Dirección y curadores en territorio
+                </span>
+                <span className="eyebrow-rule" aria-hidden="true" />
+              </div>
               <h2 className="section-title">
                 Quiénes te acompañan en Anta.
               </h2>
@@ -256,7 +247,7 @@ export function BrandStorySection({
                       <button
                         type="button"
                         className={`btn btn-sm ${
-                          isSelected ? 'btn-primary' : 'btn-ghost'
+                          isSelected ? 'btn-primary' : 'btn-outline'
                         }`}
                         onClick={() => onScheduleWithAgent(advisor.name)}
                       >
@@ -266,6 +257,7 @@ export function BrandStorySection({
                             ? `Recorrido con ${advisor.name} (en Dossier)`
                             : `Agendar recorrido con ${advisor.name}`}
                         </span>
+                        <ArrowRight size={14} strokeWidth={2} />
                       </button>
                     </div>
                   </div>

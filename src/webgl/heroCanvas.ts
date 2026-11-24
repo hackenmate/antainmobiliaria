@@ -1,4 +1,4 @@
-// Procedural WebGL2 Andean Topographic Contour & Atmospheric Light Shader for Realty Anta Terra
+// Procedural WebGL2 Topographic Contour & Atmospheric Light Shader for ALASO Constructora e Inmobiliaria
 export function initHeroCanvas(canvas: HTMLCanvasElement | null): () => void {
   if (!canvas) return () => {};
   const gl = canvas.getContext('webgl2', {
@@ -55,25 +55,16 @@ export function initHeroCanvas(canvas: HTMLCanvasElement | null): () => void {
 
     vec2 mPos = (u_mouse - 0.5) * vec2(aspect, 1.0);
     float dist = length(p - mPos);
-    float glow = exp(-dist * dist * 2.2);
+    float glow = exp(-dist * dist * 2.1);
 
-    // Light: Limestone Cream (#F4F1E8) with Deep Forest (#183E29) & Ochre (#C49642)
-    vec3 lightBg = vec3(0.957, 0.945, 0.910);
-    vec3 lightSage = vec3(0.094, 0.243, 0.161);
-    vec3 lightOchre = vec3(0.769, 0.588, 0.259);
+    // Architectural Dusk Hero Palette: Deep Charcoal-Garnet (#181214) with Granate (#570A20) & Champagne (#B9A58C)
+    vec3 baseBg = mix(vec3(0.098, 0.067, 0.078), vec3(0.065, 0.043, 0.051), u_isDark);
+    vec3 granate = vec3(0.475, 0.055, 0.173);
+    vec3 champagne = vec3(0.725, 0.647, 0.549);
 
-    // Dark: Honed Cusco Basalt (#0E1310) with Alpine Olive (#4B755E) & Terracotta/Ochre (#C59A5B)
-    vec3 darkBg = vec3(0.055, 0.075, 0.063);
-    vec3 darkSage = vec3(0.294, 0.459, 0.369);
-    vec3 darkOchre = vec3(0.773, 0.604, 0.357);
-
-    vec3 baseCol = mix(lightBg, darkBg, u_isDark);
-    vec3 sageCol = mix(lightSage, darkSage, u_isDark);
-    vec3 ochreCol = mix(lightOchre, darkOchre, u_isDark);
-
-    vec3 col = baseCol;
-    col = mix(col, mix(sageCol, ochreCol, 0.28), glow * (u_isDark > 0.5 ? 0.22 : 0.11));
-    col += sageCol * line * (u_isDark > 0.5 ? 0.095 : 0.065);
+    vec3 col = baseBg;
+    col = mix(col, mix(granate, champagne, 0.25), glow * 0.34);
+    col += champagne * line * 0.085;
 
     outColor = vec4(col, 1.0);
   }`;

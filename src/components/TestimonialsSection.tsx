@@ -109,9 +109,12 @@ export function TestimonialsSection({
       <div className="container">
         <div className="testimonials-header">
           <div className="testimonials-title-wrap">
-            <span className="eyebrow-text">
-              Voces de propietarios · Operaciones cerradas en Anta
-            </span>
+            <div className="eyebrow-rule-row">
+              <span className="eyebrow-text">
+                Propietarios ALASO · Operaciones cerradas en Anta
+              </span>
+              <span className="eyebrow-rule" aria-hidden="true" />
+            </div>
             <h2 className="section-title">
               Historias reales de quienes ya construyen en el valle.
             </h2>
@@ -225,7 +228,7 @@ export function TestimonialsSection({
                   </button>
                   <button
                     type="button"
-                    className="btn btn-ghost btn-sm"
+                    className="btn btn-outline btn-sm"
                     onClick={() => onScheduleWithAgent(item.advisor)}
                   >
                     <CalendarCheck size={15} strokeWidth={1.9} />

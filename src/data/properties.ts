@@ -79,7 +79,7 @@ export const SECTORS: Record<SectorId, SectorInfo> = {
     district: 'Anta · Cusco',
     elevation: '3,345 m s.n.m.',
     pricePerSqmUsd: 115,
-    dotColor: '#183E29',
+    dotColor: '#570A20',
     headline: 'Conectividad directa al corredor Cusco – Chinchero',
     description:
       'Lotes urbanos planos con acceso afirmado, bosques de eucalipto colindantes y vista panorámica hacia toda la Pampa de Anta.',
@@ -94,13 +94,13 @@ export const SECTORS: Record<SectorId, SectorInfo> = {
     district: 'Zurite · Anta',
     elevation: '3,405 m s.n.m.',
     pricePerSqmUsd: 92,
-    dotColor: '#B86B43',
+    dotColor: '#790E2C',
     headline: 'Horizonte agrícola, bosques y patrimonio local',
     description:
       'Estancias amplias junto a laderas arboladas y acceso directo desde la vía rural, ideales para casas quinta y proyectos eco-residenciales.',
     coordinates: { lat: -13.4525, lng: -72.2564 },
     image: REAL_ASSETS.chapelTeamGreeting,
-    alt: 'Capilla andina de doble torre y equipo de campo de Realty Anta Terra rodeados de eucaliptos',
+    alt: 'Capilla andina de doble torre y equipo técnico de ALASO en Anta, Cusco',
   },
   huarocondo: {
     id: 'huarocondo',
@@ -109,7 +109,7 @@ export const SECTORS: Record<SectorId, SectorInfo> = {
     district: 'Huarocondo · Anta',
     elevation: '3,365 m s.n.m.',
     pricePerSqmUsd: 84,
-    dotColor: '#C49642',
+    dotColor: '#B9A58C',
     headline: 'Laderas soleadas con relieve natural y privacidad',
     description:
       'Parcelas en elevación natural con orientación solar privilegiada todo el año y proyección hacia el Valle Sagrado.',
@@ -203,7 +203,7 @@ export const REAL_ARCHIVE_ITEMS: ArchiveMediaItem[] = [
   },
   {
     id: 'real-pano-2',
-    title: 'Relieve y Laderas Mirador Illary',
+    title: 'Relieve y Laderas Mirador Huarocondo',
     subtitle: 'Vista elevada de parcelas agrícolas y cordillera circundante',
     mediaType: 'image',
     url: REAL_ASSETS.hillsidePlots,
@@ -214,7 +214,7 @@ export const REAL_ARCHIVE_ITEMS: ArchiveMediaItem[] = [
   {
     id: 'real-field-1',
     title: 'Visita de Reconocimiento en Campo',
-    subtitle: 'Equipo Realty Anta Terra inspeccionando el acceso frente a la capilla',
+    subtitle: 'Equipo técnico ALASO inspeccionando el acceso frente a la capilla',
     mediaType: 'image',
     url: REAL_ASSETS.chapelTeamGreeting,
     category: 'field',

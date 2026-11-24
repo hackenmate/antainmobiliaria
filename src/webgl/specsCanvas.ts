@@ -1,4 +1,4 @@
-// Interactive 3D Topographic Valley & Parcel Relief Mesh for Realty Anta Terra
+// Interactive 3D Topographic Valley & Parcel Relief Mesh for ALASO Constructora e Inmobiliaria
 export function initSpecsCanvas(canvas: HTMLCanvasElement | null): () => void {
   if (!canvas) return () => {};
   const ctx = canvas.getContext('2d');
@@ -50,11 +50,11 @@ export function initSpecsCanvas(canvas: HTMLCanvasElement | null): () => void {
     const isDark =
       document.documentElement.getAttribute('data-theme') !== 'light';
     const strokeMain = isDark
-      ? 'rgba(242, 240, 234, 0.22)'
-      : 'rgba(21, 26, 23, 0.18)';
+      ? 'rgba(245, 243, 240, 0.2)'
+      : 'rgba(102, 97, 95, 0.24)';
     const strokeAccent = isDark
-      ? 'rgba(197, 154, 91, 0.78)'
-      : 'rgba(47, 79, 62, 0.75)';
+      ? 'rgba(185, 165, 140, 0.85)'
+      : 'rgba(87, 10, 32, 0.78)';
 
     if (!prefersReduced) {
       phase += 0.006 + hoverBoost;

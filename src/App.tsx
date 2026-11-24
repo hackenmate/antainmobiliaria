@@ -12,7 +12,20 @@ import {
   where,
 } from 'firebase/firestore';
 import { onAuthStateChanged, signInWithPopup, type User } from 'firebase/auth';
-import { ArrowUpRight, Calendar, Check, Film, Moon, Sun, X } from 'lucide-react';
+import {
+  ArrowRight,
+  ArrowUpRight,
+  Calendar,
+  Check,
+  DraftingCompass,
+  Film,
+  Handshake,
+  HardHat,
+  Home,
+  Moon,
+  Sun,
+  X,
+} from 'lucide-react';
 import { initHeroCanvas } from './webgl/heroCanvas';
 import { initSpecsCanvas } from './webgl/specsCanvas';
 import {
@@ -27,7 +40,7 @@ import {
   type ShowcaseSlide,
 } from './data/properties';
 import { AntaInteractiveMap } from './components/AntaInteractiveMap';
-import { BrandEmblem } from './components/BrandEmblem';
+import { AlasoLogo } from './components/AlasoLogo';
 import { BrandStorySection } from './components/BrandStorySection';
 import { TestimonialsSection } from './components/TestimonialsSection';
 import {
@@ -42,6 +55,8 @@ import {
   handleFirestoreError,
   popupRedirectResolver,
 } from './firebase';
+import architecturalPavilion from './assets/images/alaso_modern_pavilion_1795493777970.jpg';
+import andeanVillaPreview from './assets/images/alaso_andean_villa_1795493779769.jpg';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -63,6 +78,29 @@ interface SavedInquiryRecord {
   status: string;
 }
 
+const TRUST_PILLARS = [
+  {
+    title: 'Construcción de calidad',
+    subtitle: 'Habilitación técnica en obra',
+    Icon: HardHat,
+  },
+  {
+    title: 'Desarrollo inmobiliario',
+    subtitle: 'Sectores en el valle de Anta',
+    Icon: Home,
+  },
+  {
+    title: 'Diseño y planificación',
+    subtitle: 'Topografía y ortofotos 4K',
+    Icon: DraftingCompass,
+  },
+  {
+    title: 'Asesoría personalizada',
+    subtitle: 'Saneamiento SUNARP directo',
+    Icon: Handshake,
+  },
+] as const;
+
 function formatUsd(amount: number): string {
   return new Intl.NumberFormat('es-PE', {
     style: 'currency',
@@ -72,7 +110,7 @@ function formatUsd(amount: number): string {
 }
 
 export default function App() {
-  // Always open in light mode regardless of browser dark-mode preference
+  // Always open in light Marfil theme matching the ALASO reference specification
   const [theme, setTheme] = useState<'dark' | 'light'>('light');
   const [quotaExceeded, setQuotaExceeded] = useState(false);
 
@@ -127,7 +165,7 @@ export default function App() {
       poster: m.poster,
       alt: m.title,
       title: m.title,
-      subtitle: m.subtitle || 'Realty Anta Terra · Anta, Cusco',
+      subtitle: m.subtitle || 'ALASO Constructora e Inmobiliaria · Anta, Cusco',
       sector: m.sector,
     }));
     while (mapped.length < 4) {
@@ -441,6 +479,13 @@ export default function App() {
   const activeScale =
     AREA_OPTIONS.find((a) => a.sqm === areaSqm)?.scale ?? 1.0;
 
+  const configuratorImage =
+    modality === 'villa' ? andeanVillaPreview : activeSectorInfo.image;
+  const configuratorAlt =
+    modality === 'villa'
+      ? `Propuesta arquitectónica de villa modular en piedra y madera para ${activeSectorInfo.name}`
+      : activeSectorInfo.alt;
+
   const addCurrentToDossier = () => {
     const itemId = `${sector}-${areaSqm}-${modality}`;
     setInquirySuccess(null);
@@ -525,7 +570,7 @@ export default function App() {
       setDossier([]);
       setNotes('');
       setInquirySuccess(
-        `Solicitud registrada. ${selectedAgent} de Realty Anta Terra confirmará tu recorrido en Anta.`
+        `Solicitud registrada. ${selectedAgent} de ALASO confirmará tu recorrido en Anta.`
       );
     } catch (err: unknown) {
       if (
@@ -586,18 +631,15 @@ export default function App() {
         </div>
       )}
 
-      <div className="grain-overlay" aria-hidden="true" />
-
-      {/* Top Bar Contract: Strictly 3 Zones [Brand] — [4-5 links] — [1 primary CTA] */}
+      {/* Top Bar Contract: Strictly 3 Zones [ALASO Brand] — [5 links] — [1 primary CTA] */}
       <header className="site-header" id="site-header">
         <div className="container header-inner">
           <a
             href="#hero"
             className="brand-lockup"
-            aria-label="Realty Anta Terra Inicio"
+            aria-label="ALASO Constructora e Inmobiliaria Inicio"
           >
-            <BrandEmblem size={34} className="brand-mark" />
-            <span className="brand-wordmark">Realty Anta Terra</span>
+            <AlasoLogo variant="light-surface" />
           </a>
 
           <nav className="header-nav" aria-label="Navegación principal">
@@ -607,8 +649,8 @@ export default function App() {
             <a href="#mapa" className="nav-link">
               Mapa
             </a>
-            <a href="#historia" className="nav-link">
-              Historia
+            <a href="#nosotros" className="nav-link">
+              Nosotros
             </a>
             <a href="#configurador" className="nav-link">
               Terrenos
@@ -624,9 +666,11 @@ export default function App() {
               className="btn btn-primary btn-sm"
               onClick={() => setDrawerOpen(true)}
             >
-              <span>Mi Dossier</span>
-              {dossierCount > 0 && (
-                <span className="header-count tabular-nums">{dossierCount}</span>
+              <span>Solicitar Asesoría</span>
+              {dossierCount > 0 ? (
+                <span className="header-count tabular-nums">({dossierCount})</span>
+              ) : (
+                <ArrowRight size={15} strokeWidth={2} />
               )}
             </button>
           </div>
@@ -634,7 +678,7 @@ export default function App() {
       </header>
 
       <main>
-        {/* SECTION 1: WebGL Topographic Split Hero */}
+        {/* SECTION 1: Architectural Dusk Hero */}
         <section id="hero" className="hero">
           <canvas
             ref={heroCanvasRef}
@@ -646,9 +690,12 @@ export default function App() {
           <div className="container hero-grid">
             <div className="hero-copy">
               <div className="hero-kicker-row">
-                <span className="eyebrow-text">
-                  Anta, Cusco · 3,345 m s.n.m. · Registro real con dron
-                </span>
+                <div className="eyebrow-rule-row">
+                  <span className="eyebrow-text hero-eyebrow">
+                    Constructora e Inmobiliaria · Anta, Cusco
+                  </span>
+                  <span className="eyebrow-rule" aria-hidden="true" />
+                </div>
                 <button
                   type="button"
                   className="theme-inline-btn"
@@ -667,25 +714,26 @@ export default function App() {
               </div>
 
               <h1 className="hero-title">
-                Tierra viva en el valle de Anta.
+                Construimos espacios. Creamos oportunidades.
               </h1>
               <p className="hero-sub">
-                Terrenos reales documentados en sobrevuelo aéreo, estancias
-                rodeadas de eucaliptos y lotes con proyección residencial junto
-                al corredor Cusco – Chinchero.
+                En ALASO desarrollamos terrenos habilitados con criterio
+                constructivo, documentación en regla en SUNARP y registro real
+                en dron 4K en la provincia de Anta, corredor Cusco – Chinchero.
               </p>
 
               <div className="hero-actions">
                 <a href="#configurador" className="btn btn-primary">
-                  Cotizar Terreno
+                  <span>Cotizar Terreno</span>
+                  <ArrowRight size={16} strokeWidth={2} />
                 </a>
-                <a href="#estudio" className="btn btn-ghost">
+                <a href="#estudio" className="btn btn-hero-outline">
                   <Film size={16} strokeWidth={1.9} />
                   <span>Ver Videos Dron</span>
                 </a>
-                <a href="#mapa" className="btn btn-ghost">
+                <a href="#mapa" className="btn btn-hero-outline">
                   <span>Mapa en Vivo</span>
-                  <ArrowUpRight size={17} strokeWidth={1.9} />
+                  <ArrowUpRight size={16} strokeWidth={1.9} />
                 </a>
               </div>
             </div>
@@ -755,6 +803,26 @@ export default function App() {
                 })}
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* Architectural 4-Pillar Trust Strip below Hero */}
+        <section className="hero-trust-strip" aria-label="Pilares ALASO">
+          <div className="container trust-strip-grid">
+            {TRUST_PILLARS.map((item) => {
+              const IconComponent = item.Icon;
+              return (
+                <div key={item.title} className="trust-pillar-cell">
+                  <span className="trust-pillar-icon" aria-hidden="true">
+                    <IconComponent size={20} strokeWidth={1.7} />
+                  </span>
+                  <div className="trust-pillar-copy">
+                    <strong className="trust-pillar-title">{item.title}</strong>
+                    <span className="trust-pillar-sub">{item.subtitle}</span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </section>
 
@@ -828,7 +896,7 @@ export default function App() {
               <div
                 className="showcase-dots"
                 role="tablist"
-                aria-label="Perspectivas de Anta Terra"
+                aria-label="Perspectivas ALASO en Anta"
               >
                 {showcaseSlides.map((slide, i) => (
                   <button
@@ -925,9 +993,12 @@ export default function App() {
             </div>
 
             <div className="thermal-copy">
-              <span className="eyebrow-text">
-                Levantamiento fotogramétrico real · Octubre 2026
-              </span>
+              <div className="eyebrow-rule-row">
+                <span className="eyebrow-text">
+                  Levantamiento fotogramétrico real · Octubre 2026
+                </span>
+                <span className="eyebrow-rule" aria-hidden="true" />
+              </div>
               <h2 className="section-title">
                 Del polígono matriz al trazo exacto de tu lote.
               </h2>
@@ -991,11 +1062,14 @@ export default function App() {
         <section id="especificaciones" className="bento-section">
           <div className="container">
             <div className="section-header-stack">
-              <span className="eyebrow-text">
-                Presencia en campo, marca y topografía
-              </span>
+              <div className="eyebrow-rule-row">
+                <span className="eyebrow-text">
+                  Presencia en campo, arquitectura y topografía
+                </span>
+                <span className="eyebrow-rule" aria-hidden="true" />
+              </div>
               <h2 className="section-title">
-                Arraigo en Anta con estándar arquitectónico.
+                Arraigo en Anta con estándar constructivo.
               </h2>
             </div>
 
@@ -1003,7 +1077,7 @@ export default function App() {
               <article className="bento-tile bento-tall reveal-tile">
                 <img
                   src={REAL_ASSETS.chapelTeamWide}
-                  alt="Capilla andina de doble torre frente a la ladera forestada con el equipo de Realty Anta Terra en visita técnica"
+                  alt="Capilla andina de doble torre frente a la ladera forestada con el equipo de ALASO en visita técnica"
                   loading="lazy"
                   decoding="async"
                   referrerPolicy="no-referrer"
@@ -1059,7 +1133,7 @@ export default function App() {
           </div>
         </section>
 
-        {/* SECTION 5.5: Brand Story, Logo Anatomy & Official Advisors */}
+        {/* SECTION 5.5: Sobre ALASO, Brand Values & Official Advisors */}
         <BrandStorySection
           selectedAgent={selectedAgent}
           onScheduleWithAgent={handleScheduleWithAgent}
@@ -1076,8 +1150,8 @@ export default function App() {
           <div className="container order-grid">
             <div className="order-preview" id="order-preview">
               <img
-                src={activeSectorInfo.image}
-                alt={activeSectorInfo.alt}
+                src={configuratorImage}
+                alt={configuratorAlt}
                 loading="lazy"
                 decoding="async"
                 referrerPolicy="no-referrer"
@@ -1092,7 +1166,10 @@ export default function App() {
             </div>
 
             <div className="order-panel">
-              <span className="eyebrow-text">Configurador de inversión</span>
+              <div className="eyebrow-rule-row">
+                <span className="eyebrow-text">Configurador de inversión</span>
+                <span className="eyebrow-rule" aria-hidden="true" />
+              </div>
               <h2 className="section-title">Diseña tu propiedad en Anta</h2>
               <p className="order-price tabular-nums" id="order-price">
                 {formatUsd(estimatedUsd)}
@@ -1192,8 +1269,42 @@ export default function App() {
                 id="add-to-dossier-btn"
                 onClick={addCurrentToDossier}
               >
-                Agregar al Dossier y Agendar Visita — {formatUsd(estimatedUsd)}
+                <span>
+                  Agregar al Dossier y Agendar Visita — {formatUsd(estimatedUsd)}
+                </span>
+                <ArrowRight size={16} strokeWidth={2} />
               </button>
+            </div>
+          </div>
+        </section>
+
+        {/* SECTION 6.5: ALASO Granate Architectural CTA Banner */}
+        <section className="alaso-cta-section" aria-label="Asesoría de proyecto">
+          <div className="container">
+            <div className="alaso-cta-banner">
+              <img
+                src={architecturalPavilion}
+                alt=""
+                aria-hidden="true"
+                className="alaso-cta-backdrop"
+              />
+              <div className="alaso-cta-content">
+                <h2 className="alaso-cta-title">
+                  Tu próximo proyecto comienza aquí.
+                </h2>
+                <p className="alaso-cta-sub">
+                  Conversemos sobre tus necesidades de terreno o vivienda y
+                  encontremos la alternativa exacta para ti en Anta, Cusco.
+                </p>
+                <button
+                  type="button"
+                  className="btn btn-marfil"
+                  onClick={() => setDrawerOpen(true)}
+                >
+                  <span>Hablemos de tu proyecto</span>
+                  <ArrowRight size={16} strokeWidth={2} />
+                </button>
+              </div>
             </div>
           </div>
         </section>
@@ -1208,14 +1319,38 @@ export default function App() {
 
       <footer className="site-footer">
         <div className="container footer-inner">
-          <span className="brand-lockup footer-brand">
-            <BrandEmblem size={30} className="brand-mark" />
-            <span>Realty Anta Terra</span>
-          </span>
-          <span className="footer-tag">
-            Izcuchaca · Zurite · Huarocondo — Anta, Cusco, Perú
-          </span>
-          <span className="footer-copy">© 2026 Realty Anta Terra</span>
+          <div className="footer-brand-col">
+            <a href="#hero" aria-label="ALASO Inicio">
+              <AlasoLogo variant="dark-surface" height={50} />
+            </a>
+            <span className="footer-tag">
+              Izcuchaca · Zurite · Huarocondo — Anta, Cusco, Perú
+            </span>
+          </div>
+
+          <nav className="footer-nav" aria-label="Navegación pie de página">
+            <a href="#showcase" className="footer-link">
+              Sobrevuelos
+            </a>
+            <a href="#mapa" className="footer-link">
+              Mapa
+            </a>
+            <a href="#nosotros" className="footer-link">
+              Nosotros
+            </a>
+            <a href="#configurador" className="footer-link">
+              Terrenos
+            </a>
+            <a href="#estudio" className="footer-link">
+              Estudio
+            </a>
+          </nav>
+
+          <div className="footer-meta-col">
+            <span className="footer-copy">
+              © 2026 ALASO — Constructora e Inmobiliaria
+            </span>
+          </div>
         </div>
       </footer>
 
@@ -1375,11 +1510,14 @@ export default function App() {
               className="btn btn-primary btn-full"
               disabled={submittingInquiry}
             >
-              {submittingInquiry
-                ? 'Guardando solicitud...'
-                : user
-                  ? 'Confirmar Visita en Anta'
-                  : 'Conectar con Google y Confirmar'}
+              <span>
+                {submittingInquiry
+                  ? 'Guardando solicitud...'
+                  : user
+                    ? 'Confirmar Visita en Anta'
+                    : 'Conectar con Google y Confirmar'}
+              </span>
+              <ArrowRight size={16} strokeWidth={2} />
             </button>
           </form>
 

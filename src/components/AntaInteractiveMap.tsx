@@ -77,10 +77,10 @@ function SectorMarker({
         }}
       >
         <Pin
-          background={isSelected ? '#2F4F3E' : '#9E763B'}
-          borderColor={isSelected ? '#F4F3EF' : '#151A17'}
-          glyphColor="#F4F3EF"
-          scale={isSelected ? 1.2 : 1.0}
+          background={isSelected ? '#570A20' : '#B9A58C'}
+          borderColor={isSelected ? '#F5F3F0' : '#570A20'}
+          glyphColor={isSelected ? '#F5F3F0' : '#1F1B1C'}
+          scale={isSelected ? 1.22 : 1.0}
         />
       </AdvancedMarker>
 
@@ -196,9 +196,9 @@ function RouteAndPlacesController({
         const newPolylines = primaryRoute.createPolylines();
         newPolylines.forEach((polyline) => {
           polyline.setOptions({
-            strokeColor: '#2F4F3E',
+            strokeColor: '#570A20',
             strokeWeight: 5,
-            strokeOpacity: 0.9,
+            strokeOpacity: 0.92,
           });
           polyline.setMap(map);
         });
@@ -338,9 +338,9 @@ function RouteAndPlacesController({
           zIndex={5}
         >
           <Pin
-            background="#F4F3EF"
-            borderColor="#2F4F3E"
-            glyphColor="#2F4F3E"
+            background="#F5F3F0"
+            borderColor="#570A20"
+            glyphColor="#570A20"
             scale={0.78}
           />
         </AdvancedMarker>
