@@ -5,7 +5,9 @@ import {
   Gem,
   Handshake,
   Landmark,
+  Mountain,
   ShieldCheck,
+  Target,
 } from 'lucide-react';
 import type { AgentName } from '../data/properties';
 import { AlasoLogo } from './AlasoLogo';
@@ -66,6 +68,29 @@ const BRAND_PILLARS = [
   },
 ];
 
+const PURPOSE_STATEMENTS = [
+  {
+    id: 'mision',
+    eyebrow: 'Propósito en cada proyecto',
+    title: 'Nuestra Misión',
+    statement:
+      'Desarrollar terrenos habilitados y proyectos arquitectónicos en la provincia de Anta con estricto respaldo registral SUNARP, criterio constructivo y respeto por la geografía andina; brindando asesoría directa, transparente y verificable en campo desde el primer recorrido hasta la entrega de tu propiedad.',
+    anchors: ['Saneamiento verificable', 'Criterio constructivo', 'Trato directo en obra'],
+    tone: 'marfil' as const,
+    Icon: Target,
+  },
+  {
+    id: 'vision',
+    eyebrow: 'Horizonte en el valle',
+    title: 'Nuestra Visión',
+    statement:
+      'Consolidar a ALASO como la constructora e inmobiliaria referente del corredor Cusco – Anta – Chinchero por dar vida a comunidades residenciales y casas quinta ordenadas, sostenibles y de sólida valorización patrimonial, integrando arquitectura contemporánea y paisaje agrícola en armonía.',
+    anchors: ['Desarrollo orgánico', 'Valorización patrimonial', 'Identidad andina'],
+    tone: 'granate' as const,
+    Icon: Mountain,
+  },
+] as const;
+
 interface AdvisorProfile {
   name: AgentName;
   role: string;
@@ -102,10 +127,7 @@ const ADVISORS: AdvisorProfile[] = [
   },
 ];
 
-export function BrandStorySection({
-  selectedAgent,
-  onScheduleWithAgent,
-}: BrandStorySectionProps) {
+export function BrandStorySection() {
   return (
     <section id="nosotros" className="sobre-alaso-section">
       <div className="container">
@@ -189,82 +211,165 @@ export function BrandStorySection({
           </div>
         </div>
 
-        {/* Part 2: Dirección y Equipo en Territorio */}
-        <div className="advisors-block">
-          <div className="advisors-header">
+        {/* Part 1.5: Organic Misión & Visión Architectural Diptych */}
+        <div className="purpose-block" aria-labelledby="purpose-heading">
+          <div className="purpose-header">
             <div>
               <div className="eyebrow-rule-row">
-                <span className="eyebrow-text">
-                  Dirección y curadores en territorio
-                </span>
+                <span className="eyebrow-text">Identidad y rumbo</span>
                 <span className="eyebrow-rule" aria-hidden="true" />
               </div>
-              <h2 className="section-title">
-                Quiénes te acompañan en Anta.
+              <h2 id="purpose-heading" className="section-title">
+                Arraigo territorial con visión de futuro.
               </h2>
             </div>
-            <p className="advisors-header-sub">
-              Un modelo de asesoría directa sin call centers: tratas desde la
-              primera consulta con nuestros directores en campo y registro.
+            <p className="purpose-header-sub">
+              Cada hectárea que habilitamos nace de un equilibrio honesto entre
+              seguridad jurídica, topografía natural y permanencia arquitectónica.
             </p>
           </div>
 
-          <div className="advisors-grid">
-            {ADVISORS.map((advisor) => {
-              const isSelected = selectedAgent === advisor.name;
+          <div className="purpose-grid">
+            {PURPOSE_STATEMENTS.map((item) => {
+              const IconComponent = item.Icon;
               return (
-                <article key={advisor.name} className="advisor-card">
-                  <div className="advisor-portrait-wrap">
-                    <img
-                      src={advisor.image}
-                      alt={advisor.alt}
-                      loading="lazy"
-                      decoding="async"
-                      referrerPolicy="no-referrer"
-                      className="advisor-portrait-img"
+                <article
+                  key={item.id}
+                  className={`purpose-card purpose-card--${item.tone}`}
+                >
+                  <svg
+                    className="purpose-contour-svg"
+                    viewBox="0 0 240 240"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M40 190C80 140 120 155 165 110C195 80 215 45 230 20"
+                      stroke="currentColor"
+                      strokeWidth="1.2"
                     />
+                    <path
+                      d="M15 220C70 175 130 185 180 138C210 110 228 75 240 50"
+                      stroke="currentColor"
+                      strokeWidth="1.2"
+                    />
+                    <path
+                      d="M80 230C125 190 165 198 205 160C225 140 235 120 245 98"
+                      stroke="currentColor"
+                      strokeWidth="1.2"
+                    />
+                  </svg>
+
+                  <div className="purpose-card-top">
+                    <span className="purpose-icon-badge" aria-hidden="true">
+                      <IconComponent size={20} strokeWidth={1.7} />
+                    </span>
+                    <span className="purpose-eyebrow">{item.eyebrow}</span>
                   </div>
 
-                  <div className="advisor-body">
-                    <div className="advisor-kicker">
-                      <span>{advisor.role}</span>
-                    </div>
-                    <h3 className="advisor-name">{advisor.name}</h3>
-                    <div className="advisor-meta-line">
-                      <Compass size={14} strokeWidth={1.8} />
-                      <span>{advisor.focus}</span>
-                      <span aria-hidden="true">·</span>
-                      <span>{advisor.territory}</span>
-                    </div>
+                  <h3 className="purpose-title">{item.title}</h3>
+                  <p className="purpose-text">{item.statement}</p>
 
-                    <p className="advisor-bio">{advisor.bio}</p>
-
-                    <blockquote className="advisor-quote">
-                      {advisor.ethos}
-                    </blockquote>
-
-                    <div className="advisor-actions">
-                      <button
-                        type="button"
-                        className={`btn btn-sm ${
-                          isSelected ? 'btn-primary' : 'btn-outline'
-                        }`}
-                        onClick={() => onScheduleWithAgent(advisor.name)}
-                      >
-                        <CalendarCheck size={15} strokeWidth={1.9} />
-                        <span>
-                          {isSelected
-                            ? `Recorrido con ${advisor.name} (en Dossier)`
-                            : `Agendar recorrido con ${advisor.name}`}
-                        </span>
-                        <ArrowRight size={14} strokeWidth={2} />
-                      </button>
-                    </div>
+                  <div className="purpose-anchors">
+                    {item.anchors.map((anchor, idx) => (
+                      <span key={anchor} className="purpose-anchor-item">
+                        {idx > 0 && (
+                          <span className="purpose-anchor-sep" aria-hidden="true">
+                            ·
+                          </span>
+                        )}
+                        <span>{anchor}</span>
+                      </span>
+                    ))}
                   </div>
                 </article>
               );
             })}
           </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function AdvisorsSection({
+  selectedAgent,
+  onScheduleWithAgent,
+}: BrandStorySectionProps) {
+  return (
+    <section id="equipo" className="advisors-section">
+      <div className="container">
+        <div className="advisors-header">
+          <div>
+            <div className="eyebrow-rule-row">
+              <span className="eyebrow-text">
+                Dirección y curadores en territorio
+              </span>
+              <span className="eyebrow-rule" aria-hidden="true" />
+            </div>
+            <h2 className="section-title">Quiénes te acompañan en Anta.</h2>
+          </div>
+          <p className="advisors-header-sub">
+            Un modelo de asesoría directa sin call centers: tratas desde la
+            primera consulta con nuestros directores en campo y registro.
+          </p>
+        </div>
+
+        <div className="advisors-grid">
+          {ADVISORS.map((advisor) => {
+            const isSelected = selectedAgent === advisor.name;
+            return (
+              <article key={advisor.name} className="advisor-card">
+                <div className="advisor-portrait-wrap">
+                  <img
+                    src={advisor.image}
+                    alt={advisor.alt}
+                    loading="lazy"
+                    decoding="async"
+                    referrerPolicy="no-referrer"
+                    className="advisor-portrait-img"
+                  />
+                </div>
+
+                <div className="advisor-body">
+                  <div className="advisor-kicker">
+                    <span>{advisor.role}</span>
+                  </div>
+                  <h3 className="advisor-name">{advisor.name}</h3>
+                  <div className="advisor-meta-line">
+                    <Compass size={14} strokeWidth={1.8} />
+                    <span>{advisor.focus}</span>
+                    <span aria-hidden="true">·</span>
+                    <span>{advisor.territory}</span>
+                  </div>
+
+                  <p className="advisor-bio">{advisor.bio}</p>
+
+                  <blockquote className="advisor-quote">
+                    {advisor.ethos}
+                  </blockquote>
+
+                  <div className="advisor-actions">
+                    <button
+                      type="button"
+                      className={`btn btn-sm ${
+                        isSelected ? 'btn-primary' : 'btn-outline'
+                      }`}
+                      onClick={() => onScheduleWithAgent(advisor.name)}
+                    >
+                      <CalendarCheck size={15} strokeWidth={1.9} />
+                      <span>
+                        {isSelected
+                          ? `Recorrido con ${advisor.name} (en Dossier)`
+                          : `Agendar recorrido con ${advisor.name}`}
+                      </span>
+                      <ArrowRight size={14} strokeWidth={2} />
+                    </button>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </div>
     </section>

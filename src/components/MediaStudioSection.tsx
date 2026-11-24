@@ -12,8 +12,10 @@ import {
 } from 'firebase/firestore';
 import { signInWithPopup, signOut, type User } from 'firebase/auth';
 import {
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   Expand,
   Film,
   Image as ImageIcon,
@@ -68,7 +70,7 @@ const FILTER_TABS: { key: FilterKey; label: string }[] = [
   { key: 'field', label: 'Campo y Entorno' },
 ];
 
-function getYoutubeEmbedUrl(rawUrl: string): string | null {
+export function getYoutubeEmbedUrl(rawUrl: string): string | null {
   try {
     const parsed = new URL(rawUrl);
     if (
@@ -114,6 +116,7 @@ export function MediaStudioSection({
 }: MediaStudioSectionProps) {
   const [assets, setAssets] = useState<MediaAssetRecord[]>([]);
   const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
+  const [showAllInAllTab, setShowAllInAllTab] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [title, setTitle] = useState('');
@@ -210,6 +213,14 @@ export function MediaStudioSection({
     return allGalleryItems.filter((item) => item.category === activeFilter);
   }, [allGalleryItems, activeFilter]);
 
+  const INITIAL_VISIBLE_COUNT = 6;
+  const canToggleMore =
+    activeFilter === 'all' && filteredItems.length > INITIAL_VISIBLE_COUNT;
+  const visibleItems =
+    canToggleMore && !showAllInAllTab
+      ? filteredItems.slice(0, INITIAL_VISIBLE_COUNT)
+      : filteredItems;
+
   useEffect(() => {
     if (lightboxIndex === null) return;
     const onKey = (e: KeyboardEvent) => {
@@ -259,6 +270,8 @@ export function MediaStudioSection({
       return;
     }
 
+    const finalPlacement = mediaType === 'video' ? placement : 'gallery';
+
     setSubmitting(true);
     setFeedback(null);
     try {
@@ -267,7 +280,7 @@ export function MediaStudioSection({
         subtitle: cleanSub,
         mediaType,
         url: cleanUrl,
-        placement,
+        placement: finalPlacement,
         sector,
         sortOrder: assets.length + 1,
         authorUid: user.uid,
@@ -375,6 +388,7 @@ export function MediaStudioSection({
                 }`}
                 onClick={() => {
                   setActiveFilter(tab.key);
+                  setShowAllInAllTab(false);
                   setLightboxIndex(null);
                 }}
               >
@@ -420,9 +434,13 @@ export function MediaStudioSection({
                     <span>Tipo de contenido</span>
                     <select
                       value={mediaType}
-                      onChange={(e) =>
-                        setMediaType(e.target.value as 'image' | 'video')
-                      }
+                      onChange={(e) => {
+                        const nextType = e.target.value as 'image' | 'video';
+                        setMediaType(nextType);
+                        if (nextType === 'image' && placement === 'showcase') {
+                          setPlacement('gallery');
+                        }
+                      }}
                     >
                       <option value="video">Video (MP4 o YouTube)</option>
                       <option value="image">Fotografía (JPG / WebP / PNG)</option>
@@ -432,7 +450,7 @@ export function MediaStudioSection({
                   <label className="field-group">
                     <span>Ubicación en la página</span>
                     <select
-                      value={placement}
+                      value={mediaType === 'image' ? 'gallery' : placement}
                       onChange={(e) =>
                         setPlacement(
                           e.target.value as 'showcase' | 'gallery'
@@ -440,8 +458,8 @@ export function MediaStudioSection({
                       }
                     >
                       <option value="gallery">Galería de Medios</option>
-                      <option value="showcase">
-                        Escaparate Principal (Pantalla completa)
+                      <option value="showcase" disabled={mediaType === 'image'}>
+                        Sobrevuelos en Dron (Solo videos)
                       </option>
                     </select>
                   </label>
@@ -499,7 +517,7 @@ export function MediaStudioSection({
         )}
 
         <div className="studio-gallery-grid">
-          {filteredItems.map((item, idx) => {
+          {visibleItems.map((item, idx) => {
             const ytEmbed =
               item.mediaType === 'video' ? getYoutubeEmbedUrl(item.url) : null;
             const isSystemArchive = item.authorUid === 'system';
@@ -590,6 +608,31 @@ export function MediaStudioSection({
             );
           })}
         </div>
+
+        {canToggleMore && (
+          <div className="studio-more-wrap">
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              onClick={() => setShowAllInAllTab((prev) => !prev)}
+            >
+              {showAllInAllTab ? (
+                <>
+                  <ChevronUp size={16} strokeWidth={1.9} />
+                  <span>Mostrar vista resumida</span>
+                </>
+              ) : (
+                <>
+                  <ChevronDown size={16} strokeWidth={1.9} />
+                  <span>
+                    Ver {filteredItems.length - INITIAL_VISIBLE_COUNT} capturas
+                    técnicas adicionales
+                  </span>
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </div>
 
       {activeLightboxItem && (

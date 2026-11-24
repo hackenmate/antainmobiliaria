@@ -14,6 +14,7 @@ import {
 import { onAuthStateChanged, signInWithPopup, type User } from 'firebase/auth';
 import {
   ArrowRight,
+  ArrowUp,
   ArrowUpRight,
   Calendar,
   Check,
@@ -22,6 +23,8 @@ import {
   Handshake,
   HardHat,
   Home,
+  MapPin,
+  Menu,
   Moon,
   Sun,
   X,
@@ -41,10 +44,17 @@ import {
 } from './data/properties';
 import { AntaInteractiveMap } from './components/AntaInteractiveMap';
 import { AlasoLogo } from './components/AlasoLogo';
-import { BrandStorySection } from './components/BrandStorySection';
+import {
+  AdvisorsSection,
+  BrandStorySection,
+} from './components/BrandStorySection';
 import { TestimonialsSection } from './components/TestimonialsSection';
+import { SectorCatalogGrid } from './components/SectorCatalogGrid';
+import { PurchaseFaqSection } from './components/PurchaseFaqSection';
+import { AntaWeatherCard } from './components/AntaWeatherCard';
 import {
   MediaStudioSection,
+  getYoutubeEmbedUrl,
   type MediaAssetRecord,
 } from './components/MediaStudioSection';
 import {
@@ -101,12 +111,23 @@ const TRUST_PILLARS = [
   },
 ] as const;
 
-function formatUsd(amount: number): string {
+const REFERENTIAL_FX_PEN = 3.75;
+
+const NAV_LINKS = [
+  { id: 'nosotros', label: 'Nosotros' },
+  { id: 'configurador', label: 'Terrenos' },
+  { id: 'mapa', label: 'Mapa' },
+  { id: 'showcase', label: 'Sobrevuelos' },
+  { id: 'proceso', label: 'Proceso' },
+] as const;
+
+function formatAmount(amountUsd: number, currency: 'USD' | 'PEN'): string {
+  const val = currency === 'PEN' ? Math.round(amountUsd * REFERENTIAL_FX_PEN) : amountUsd;
   return new Intl.NumberFormat('es-PE', {
     style: 'currency',
-    currency: 'USD',
+    currency,
     maximumFractionDigits: 0,
-  }).format(amount);
+  }).format(val);
 }
 
 export default function App() {
@@ -114,10 +135,21 @@ export default function App() {
   const [theme, setTheme] = useState<'dark' | 'light'>('light');
   const [quotaExceeded, setQuotaExceeded] = useState(false);
 
-  // Active configuration state
+  // Navigation, scroll progress, mobile menu & toast UX complements
+  const [scrollProgress, setScrollProgress] = useState<number>(0);
+  const [activeNavId, setActiveNavId] = useState<string>('');
+  const [showBackToTop, setShowBackToTop] = useState<boolean>(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState<boolean>(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const toastTimerRef = useRef<number | null>(null);
+
+  // Active configuration & financial simulator state
   const [sector, setSector] = useState<SectorId>('izcuchaca');
   const [areaSqm, setAreaSqm] = useState<number>(600);
   const [modality, setModality] = useState<ModalityId>('terreno');
+  const [currency, setCurrency] = useState<'USD' | 'PEN'>('USD');
+  const [downPct, setDownPct] = useState<20 | 30 | 50>(30);
+  const [termMonths, setTermMonths] = useState<0 | 12 | 24 | 36>(24);
 
   // Showcase & Comparison state
   const [customShowcase, setCustomShowcase] = useState<MediaAssetRecord[]>([]);
@@ -157,21 +189,27 @@ export default function App() {
   const stageTimerRef = useRef<number | null>(null);
 
   const showcaseSlides: ShowcaseSlide[] = useMemo(() => {
-    if (customShowcase.length === 0) return DEFAULT_SHOWCASE_SLIDES;
-    const mapped: ShowcaseSlide[] = customShowcase.slice(0, 4).map((m) => ({
+    const customVideos = customShowcase.filter((m) => m.mediaType === 'video');
+    if (customVideos.length === 0) return DEFAULT_SHOWCASE_SLIDES;
+
+    const mapped: ShowcaseSlide[] = customVideos.map((m) => ({
       id: m.id,
-      mediaType: m.mediaType,
+      mediaType: 'video',
       url: m.url,
-      poster: m.poster,
+      poster: m.poster || REAL_ASSETS.orthoFullBlock,
       alt: m.title,
       title: m.title,
       subtitle: m.subtitle || 'ALASO Constructora e Inmobiliaria · Anta, Cusco',
       sector: m.sector,
     }));
-    while (mapped.length < 4) {
-      mapped.push(DEFAULT_SHOWCASE_SLIDES[mapped.length]);
+
+    const merged = [...mapped];
+    for (const def of DEFAULT_SHOWCASE_SLIDES) {
+      if (!merged.some((item) => item.url === def.url)) {
+        merged.push(def);
+      }
     }
-    return mapped;
+    return merged;
   }, [customShowcase]);
 
   const handleShowcaseAssetsChange = useCallback(
@@ -332,53 +370,6 @@ export default function App() {
     const gsapCtx = gsap.context(() => {
       if (prefersReduced) return;
 
-      const frames = frameRefs.current.filter(
-        (el): el is HTMLElement => el !== null
-      );
-      if (showcaseRef.current && frames.length === 4) {
-        const tl = gsap.timeline({
-          scrollTrigger: {
-            trigger: showcaseRef.current,
-            start: 'top top',
-            end: '+=280%',
-            pin: true,
-            scrub: 0.65,
-            onUpdate: (self: { progress: number }) => {
-              const t = self.progress * 3.5;
-              let nextIdx = 0;
-              if (t >= 3.07) nextIdx = 3;
-              else if (t >= 2.02) nextIdx = 2;
-              else if (t >= 0.97) nextIdx = 1;
-
-              if (nextIdx !== stageIdxRef.current) {
-                stageIdxRef.current = nextIdx;
-                setCaptionBlur(true);
-                if (stageTimerRef.current !== null) {
-                  window.clearTimeout(stageTimerRef.current);
-                }
-                stageTimerRef.current = window.setTimeout(() => {
-                  stageTimerRef.current = null;
-                  setActiveStage(nextIdx);
-                  setCaptionBlur(false);
-                }, 100);
-              }
-            },
-          },
-        });
-
-        const wipeStarts = [0.25, 1.3, 2.35];
-        frames.forEach((frame, i) => {
-          if (i === 0) return;
-          tl.fromTo(
-            frame,
-            { clipPath: 'inset(0 0 0 100%)' },
-            { clipPath: 'inset(0 0 0 0%)', ease: 'none', duration: 0.8 },
-            wipeStarts[i - 1]
-          );
-        });
-        tl.set({}, {}, 3.5);
-      }
-
       if (bentoGridRef.current) {
         gsap.from('.reveal-tile', {
           y: 28,
@@ -413,15 +404,133 @@ export default function App() {
     };
   }, []);
 
+  // Dynamic GSAP ScrollTrigger for the video-only Sobrevuelos cluster
+  useEffect(() => {
+    const prefersReduced = window.matchMedia(
+      '(prefers-reduced-motion: reduce)'
+    ).matches;
+    const total = showcaseSlides.length;
+    frameRefs.current = frameRefs.current.slice(0, total);
+    setActiveStage((prev) => (prev >= total ? 0 : prev));
+    stageIdxRef.current = 0;
+
+    if (prefersReduced || !showcaseRef.current || total < 2) return;
+
+    const frames = frameRefs.current.filter(
+      (el): el is HTMLElement => el !== null
+    );
+    if (frames.length < 2) return;
+
+    const ctx = gsap.context(() => {
+      const transitions = frames.length - 1;
+      const totalDuration = transitions * 1.15;
+
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: showcaseRef.current,
+          start: 'top top',
+          end: `+=${transitions * 135}%`,
+          pin: true,
+          scrub: 0.6,
+          onUpdate: (self: { progress: number }) => {
+            const nextIdx = Math.min(
+              frames.length - 1,
+              Math.floor(self.progress * frames.length)
+            );
+
+            if (nextIdx !== stageIdxRef.current) {
+              stageIdxRef.current = nextIdx;
+              setCaptionBlur(true);
+              if (stageTimerRef.current !== null) {
+                window.clearTimeout(stageTimerRef.current);
+              }
+              stageTimerRef.current = window.setTimeout(() => {
+                stageTimerRef.current = null;
+                setActiveStage(nextIdx);
+                setCaptionBlur(false);
+              }, 100);
+            }
+          },
+        },
+      });
+
+      frames.forEach((frame, i) => {
+        if (i === 0) return;
+        const startAt = (i - 1) * 1.15 + 0.18;
+        tl.fromTo(
+          frame,
+          { clipPath: 'inset(0 0 0 100%)' },
+          { clipPath: 'inset(0 0 0 0%)', ease: 'none', duration: 0.8 },
+          startAt
+        );
+      });
+      tl.set({}, {}, totalDuration);
+    });
+
+    ScrollTrigger.sort();
+    ScrollTrigger.refresh();
+
+    return () => {
+      ctx.revert();
+    };
+  }, [showcaseSlides.length]);
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && drawerOpen) {
-        setDrawerOpen(false);
+      if (e.key === 'Escape') {
+        if (drawerOpen) setDrawerOpen(false);
+        if (mobileNavOpen) setMobileNavOpen(false);
       }
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [drawerOpen]);
+  }, [drawerOpen, mobileNavOpen]);
+
+  // Scroll-spy active nav item & reading progress bar
+  useEffect(() => {
+    const sectionIds = NAV_LINKS.map((l) => l.id);
+    const onScroll = () => {
+      const y = window.scrollY;
+      const docHeight =
+        document.documentElement.scrollHeight - window.innerHeight;
+      setScrollProgress(
+        docHeight > 0 ? Math.min(100, Math.max(0, (y / docHeight) * 100)) : 0
+      );
+      setShowBackToTop(y > 680);
+
+      let current = '';
+      for (const id of sectionIds) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        const rect = el.getBoundingClientRect();
+        if (rect.top <= 160 && rect.bottom >= 140) {
+          current = id;
+          break;
+        }
+      }
+      setActiveNavId(current);
+    };
+
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (toastTimerRef.current !== null) {
+        window.clearTimeout(toastTimerRef.current);
+      }
+    };
+  }, []);
+
+  const showToast = useCallback((msg: string) => {
+    setToastMessage(msg);
+    if (toastTimerRef.current !== null) {
+      window.clearTimeout(toastTimerRef.current);
+    }
+    toastTimerRef.current = window.setTimeout(() => {
+      setToastMessage(null);
+      toastTimerRef.current = null;
+    }, 3200);
+  }, []);
 
   const selectStage = (idx: number) => {
     stageIdxRef.current = idx;
@@ -476,6 +585,17 @@ export default function App() {
     areaSqm * activeSectorInfo.pricePerSqmUsd +
     (modality === 'villa' ? VILLA_BUILD_SURCHARGE_USD : 0);
 
+  const downPaymentUsd =
+    termMonths === 0 ? estimatedUsd : Math.round((estimatedUsd * downPct) / 100);
+  const financedBalanceUsd = Math.max(0, estimatedUsd - downPaymentUsd);
+  const monthlyPaymentUsd =
+    termMonths === 0 ? 0 : Math.round(financedBalanceUsd / termMonths);
+
+  const savedSectors = useMemo(
+    () => Array.from(new Set(dossier.map((item) => item.sector))),
+    [dossier]
+  );
+
   const activeScale =
     AREA_OPTIONS.find((a) => a.sqm === areaSqm)?.scale ?? 1.0;
 
@@ -503,6 +623,27 @@ export default function App() {
       ];
     });
     setDrawerOpen(true);
+  };
+
+  const handleToggleSaveSector = (sid: SectorId) => {
+    const alreadySaved = dossier.some((d) => d.sector === sid);
+    if (alreadySaved) {
+      setDossier((prev) => prev.filter((d) => d.sector !== sid));
+      showToast(`${SECTORS[sid].shortName} retirado del dossier.`);
+      return;
+    }
+    const baseUsd = 600 * SECTORS[sid].pricePerSqmUsd;
+    setDossier((prev) => [
+      ...prev,
+      {
+        id: `${sid}-600-terreno`,
+        sector: sid,
+        areaSqm: 600,
+        modality: 'terreno',
+        estimatedUsd: baseUsd,
+      },
+    ]);
+    showToast(`${SECTORS[sid].shortName} (600 m²) guardado en tu dossier.`);
   };
 
   const removeFromDossier = (id: string) => {
@@ -547,7 +688,12 @@ export default function App() {
         estimatedUsd,
       };
 
-      const formattedNotes = `[Asesor: ${selectedAgent}]${
+      const paymentSummary =
+        termMonths === 0
+          ? 'Pago al contado'
+          : `Inicial ${downPct}% (${formatAmount(downPaymentUsd, 'USD')}) + ${termMonths} cuotas ref.`;
+
+      const formattedNotes = `[Asesor: ${selectedAgent} · ${paymentSummary}]${
         notes.trim() ? ` ${notes.trim()}` : ''
       }`.slice(0, 800);
 
@@ -594,6 +740,11 @@ export default function App() {
     document
       .getElementById('configurador')
       ?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleInspectSectorOnMap = (sid: SectorId) => {
+    setSector(sid);
+    document.getElementById('mapa')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleScheduleWithAgent = (agent: AgentName) => {
@@ -643,21 +794,15 @@ export default function App() {
           </a>
 
           <nav className="header-nav" aria-label="Navegación principal">
-            <a href="#showcase" className="nav-link">
-              Sobrevuelos
-            </a>
-            <a href="#mapa" className="nav-link">
-              Mapa
-            </a>
-            <a href="#nosotros" className="nav-link">
-              Nosotros
-            </a>
-            <a href="#configurador" className="nav-link">
-              Terrenos
-            </a>
-            <a href="#estudio" className="nav-link">
-              Estudio
-            </a>
+            {NAV_LINKS.map((link) => (
+              <a
+                key={link.id}
+                href={`#${link.id}`}
+                className={`nav-link${activeNavId === link.id ? ' is-active' : ''}`}
+              >
+                {link.label}
+              </a>
+            ))}
           </nav>
 
           <div className="header-cta-zone">
@@ -673,9 +818,61 @@ export default function App() {
                 <ArrowRight size={15} strokeWidth={2} />
               )}
             </button>
+
+            <button
+              type="button"
+              className="mobile-menu-btn"
+              aria-label={mobileNavOpen ? 'Cerrar menú' : 'Abrir menú de navegación'}
+              aria-expanded={mobileNavOpen}
+              onClick={() => setMobileNavOpen((prev) => !prev)}
+            >
+              {mobileNavOpen ? (
+                <X size={20} strokeWidth={2} />
+              ) : (
+                <Menu size={20} strokeWidth={2} />
+              )}
+            </button>
           </div>
         </div>
+
+        <div
+          className="scroll-progress-track"
+          aria-hidden="true"
+        >
+          <div
+            className="scroll-progress-bar"
+            style={{ width: `${scrollProgress.toFixed(1)}%` }}
+          />
+        </div>
       </header>
+
+      {mobileNavOpen && (
+        <div className="mobile-nav-panel" role="dialog" aria-label="Menú móvil">
+          <nav className="mobile-nav-links">
+            {NAV_LINKS.map((link) => (
+              <a
+                key={link.id}
+                href={`#${link.id}`}
+                className={`mobile-nav-link${
+                  activeNavId === link.id ? ' is-active' : ''
+                }`}
+                onClick={() => setMobileNavOpen(false)}
+              >
+                <span>{link.label}</span>
+                <ArrowRight size={15} strokeWidth={1.9} />
+              </a>
+            ))}
+            <a
+              href="#estudio"
+              className="mobile-nav-link"
+              onClick={() => setMobileNavOpen(false)}
+            >
+              <span>Archivo Audiovisual</span>
+              <ArrowRight size={15} strokeWidth={1.9} />
+            </a>
+          </nav>
+        </div>
+      )}
 
       <main>
         {/* SECTION 1: Architectural Dusk Hero */}
@@ -826,95 +1023,281 @@ export default function App() {
           </div>
         </section>
 
-        {/* SECTION 2: Pinned 4-Angle Drone Video & Aerial Photography Showcase */}
-        <section id="showcase" ref={showcaseRef} className="showcase-pin">
-          <div className="showcase-viewport" id="showcase-viewport">
-            <div className="showcase-frames" id="showcase-frames">
-              {showcaseSlides.map((slide, i) => (
-                <figure
-                  key={`${slide.id}-${i}`}
-                  ref={(el: HTMLElement | null) => {
-                    frameRefs.current[i] = el;
-                  }}
-                  className={`showcase-frame${i === 0 ? ' is-active' : ''}`}
-                  data-index={i}
-                >
-                  {slide.mediaType === 'video' ? (
-                    showcaseInView && activeStage === i ? (
-                      <video
-                        src={slide.url}
-                        poster={slide.poster}
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
-                        preload="metadata"
-                        className="showcase-img"
-                      />
-                    ) : (
-                      <img
-                        src={slide.poster || REAL_ASSETS.orthoFullBlock}
-                        alt={slide.alt}
-                        loading={i === 0 ? 'eager' : 'lazy'}
-                        decoding="async"
-                        referrerPolicy="no-referrer"
-                        className="showcase-img"
-                      />
-                    )
-                  ) : (
-                    <img
-                      src={slide.url}
-                      alt={slide.alt}
-                      loading={i === 0 ? 'eager' : 'lazy'}
-                      decoding="async"
-                      referrerPolicy="no-referrer"
-                      className="showcase-img"
-                    />
-                  )}
-                </figure>
-              ))}
-            </div>
+        {/* ACT 1: Corporate Identity — Sobre ALASO, Misión & Visión */}
+        <BrandStorySection />
 
-            <div className="showcase-hud">
-              <div
-                className={`showcase-caption${captionBlur ? ' is-blurring' : ''}`}
-                id="showcase-caption"
-              >
-                <span className="showcase-type-kicker">
-                  {showcaseSlides[activeStage]?.mediaType === 'video'
-                    ? 'Video aéreo en tiempo real · Dron DJI'
-                    : 'Fotografía aérea de alta resolución'}
-                </span>
-                <h2 className="caption-title" id="caption-title">
-                  {showcaseSlides[activeStage]?.title}
-                </h2>
-                <p className="caption-sub" id="caption-sub">
-                  {showcaseSlides[activeStage]?.subtitle}
-                </p>
+        {/* ACT 2: Real Estate Offer — Sector Comparison & Lot Configurator */}
+        <section id="configurador" className="order-section">
+          <div className="container">
+            <SectorCatalogGrid
+              activeSector={sector}
+              currency={currency}
+              fxRate={REFERENTIAL_FX_PEN}
+              savedSectors={savedSectors}
+              onSelectSector={(sid) => {
+                setSector(sid);
+                document
+                  .getElementById('order-panel')
+                  ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }}
+              onToggleSaveSector={handleToggleSaveSector}
+              onInspectOnMap={handleInspectSectorOnMap}
+            />
+
+            <div className="order-grid">
+              <div className="order-preview" id="order-preview">
+                <img
+                  src={configuratorImage}
+                  alt={configuratorAlt}
+                  loading="lazy"
+                  decoding="async"
+                  referrerPolicy="no-referrer"
+                  className="order-estate-img"
+                  style={{ transform: `scale(${activeScale})` }}
+                />
+                <div className="order-preview-caption">
+                  <span>{activeSectorInfo.name}</span>
+                  <span aria-hidden="true">·</span>
+                  <span className="tabular-nums">{areaSqm} m²</span>
+                </div>
               </div>
 
-              <div
-                className="showcase-dots"
-                role="tablist"
-                aria-label="Perspectivas ALASO en Anta"
-              >
-                {showcaseSlides.map((slide, i) => (
+              <div className="order-panel" id="order-panel">
+                <div className="eyebrow-rule-row">
+                  <span className="eyebrow-text">Configurador de inversión</span>
+                  <span className="eyebrow-rule" aria-hidden="true" />
+                </div>
+                <h2 className="section-title">Diseña tu propiedad en Anta</h2>
+
+                <div className="order-price-row">
+                  <div>
+                    <p className="order-price tabular-nums" id="order-price">
+                      {formatAmount(estimatedUsd, currency)}
+                    </p>
+                    <span className="order-price-note">
+                      {currency === 'PEN'
+                        ? `Referencial S/ ${REFERENTIAL_FX_PEN.toFixed(2)} por USD (${formatAmount(estimatedUsd, 'USD')})`
+                        : `Equiv. ref. ${formatAmount(estimatedUsd, 'PEN')} (T.C. ${REFERENTIAL_FX_PEN.toFixed(2)})`}
+                    </span>
+                  </div>
+
+                  <div
+                    className="currency-switch"
+                    role="tablist"
+                    aria-label="Moneda de cotización"
+                  >
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={currency === 'USD'}
+                      className={`currency-btn${currency === 'USD' ? ' is-active' : ''}`}
+                      onClick={() => setCurrency('USD')}
+                    >
+                      USD
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={currency === 'PEN'}
+                      className={`currency-btn${currency === 'PEN' ? ' is-active' : ''}`}
+                      onClick={() => setCurrency('PEN')}
+                    >
+                      S/ PEN
+                    </button>
+                  </div>
+                </div>
+
+                <div className="config-group">
+                  <span className="config-label">Sector del Valle</span>
+                  <div className="option-row">
+                    {(Object.keys(SECTORS) as SectorId[]).map((key) => {
+                      const meta = SECTORS[key];
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          className={`pill-option${
+                            sector === key ? ' is-active' : ''
+                          }`}
+                          onClick={() => setSector(key)}
+                        >
+                          <span
+                            className="dot"
+                            style={{ background: meta.dotColor }}
+                          />
+                          <span>{meta.shortName}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="config-group">
+                  <span className="config-label">Superficie del Lote</span>
+                  <div className="option-row">
+                    {AREA_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.sqm}
+                        type="button"
+                        className={`pill-option tabular-nums${
+                          areaSqm === opt.sqm ? ' is-active' : ''
+                        }`}
+                        onClick={() => setAreaSqm(opt.sqm)}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="config-group">
+                  <span className="config-label">Modalidad de Entrega</span>
+                  <div className="option-row">
+                    <button
+                      type="button"
+                      className={`pill-option${
+                        modality === 'terreno' ? ' is-active' : ''
+                      }`}
+                      onClick={() => setModality('terreno')}
+                    >
+                      Terreno Habilitado
+                    </button>
+                    <button
+                      type="button"
+                      className={`pill-option${
+                        modality === 'villa' ? ' is-active' : ''
+                      }`}
+                      onClick={() => setModality('villa')}
+                    >
+                      Terreno + Villa Modular (+{formatAmount(VILLA_BUILD_SURCHARGE_USD, currency)})
+                    </button>
+                  </div>
+                </div>
+
+                {/* Simulador de Inicial y Cuotas Directas */}
+                <div className="financing-box">
+                  <div className="financing-head">
+                    <span className="config-label">
+                      Simulador de pago referencial (sin trámite bancario)
+                    </span>
+                  </div>
+
+                  <div className="financing-controls">
+                    <div className="option-row">
+                      {([0, 12, 24, 36] as const).map((months) => (
+                        <button
+                          key={months}
+                          type="button"
+                          className={`pill-option pill-compact tabular-nums${
+                            termMonths === months ? ' is-active' : ''
+                          }`}
+                          onClick={() => setTermMonths(months)}
+                        >
+                          {months === 0 ? 'Contado' : `${months} cuotas`}
+                        </button>
+                      ))}
+                    </div>
+
+                    {termMonths > 0 && (
+                      <div className="option-row">
+                        {([20, 30, 50] as const).map((pct) => (
+                          <button
+                            key={pct}
+                            type="button"
+                            className={`pill-option pill-compact tabular-nums${
+                              downPct === pct ? ' is-active' : ''
+                            }`}
+                            onClick={() => setDownPct(pct)}
+                          >
+                            Inicial {pct}%
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="financing-summary tabular-nums">
+                    <div>
+                      <span className="financing-label">
+                        {termMonths === 0
+                          ? 'Inversión total al contado'
+                          : `Inicial (${downPct}%)`}
+                      </span>
+                      <strong className="financing-val">
+                        {formatAmount(downPaymentUsd, currency)}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="financing-label">
+                        {termMonths === 0
+                          ? 'Entrega documental'
+                          : `${termMonths} cuotas mensuales est.`}
+                      </span>
+                      <strong className="financing-val">
+                        {termMonths === 0
+                          ? 'Minuta inmediata'
+                          : `${formatAmount(monthlyPaymentUsd, currency)} / mes`}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="spec-list">
+                  <div className="spec-row">
+                    <span className="spec-key">Precio por m²</span>
+                    <span className="spec-val tabular-nums">
+                      {formatAmount(activeSectorInfo.pricePerSqmUsd, currency)} / m²
+                    </span>
+                  </div>
+                  <div className="spec-row">
+                    <span className="spec-key">Situación legal</span>
+                    <span className="spec-val">
+                      Título independiente · SUNARP Cusco
+                    </span>
+                  </div>
+                  <div className="spec-row">
+                    <span className="spec-key">Servicios básicos</span>
+                    <span className="spec-val">
+                      Acceso afirmado, energía y fibra óptica
+                    </span>
+                  </div>
+                </div>
+
+                <div className="order-cta-stack">
                   <button
-                    key={`${slide.id}-dot-${i}`}
                     type="button"
-                    role="tab"
-                    aria-selected={activeStage === i}
-                    className={`stage-dot${activeStage === i ? ' is-active' : ''}`}
-                    aria-label={`Vista ${i + 1}: ${slide.title}`}
-                    onClick={() => selectStage(i)}
-                  />
-                ))}
+                    className="btn btn-primary btn-full"
+                    id="add-to-dossier-btn"
+                    onClick={addCurrentToDossier}
+                  >
+                    <span>
+                      Agregar al Dossier y Agendar Visita —{' '}
+                      {formatAmount(estimatedUsd, currency)}
+                    </span>
+                    <ArrowRight size={16} strokeWidth={2} />
+                  </button>
+
+                  <button
+                    type="button"
+                    className="order-map-jump-btn"
+                    onClick={() => handleInspectSectorOnMap(sector)}
+                  >
+                    <MapPin size={14} strokeWidth={1.9} />
+                    <span>Ubicar {activeSectorInfo.shortName} en el mapa en vivo</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* SECTION 3: Interactive Orthophoto Survey Comparison Slider */}
+        {/* ACT 3: Territory, Engineering & Live Anta Climate */}
+        <AntaInteractiveMap
+          activeSector={sector}
+          onSelectSector={setSector}
+          onConfigureSector={handleConfigureFromMap}
+        />
+
         <section id="desarrollo" className="thermal-section">
           <div className="container thermal-grid">
             <div
@@ -1051,20 +1434,12 @@ export default function App() {
           </div>
         </section>
 
-        {/* SECTION 4: Real-Time Google Maps Platform Explorer */}
-        <AntaInteractiveMap
-          activeSector={sector}
-          onSelectSector={setSector}
-          onConfigureSector={handleConfigureFromMap}
-        />
-
-        {/* SECTION 5: Asymmetric 3-Tile Architectural Bento */}
         <section id="especificaciones" className="bento-section">
           <div className="container">
             <div className="section-header-stack">
               <div className="eyebrow-rule-row">
                 <span className="eyebrow-text">
-                  Presencia en campo, arquitectura y topografía
+                  Presencia en campo, arquitectura y clima
                 </span>
                 <span className="eyebrow-rule" aria-hidden="true" />
               </div>
@@ -1129,156 +1504,138 @@ export default function App() {
                   </span>
                 </div>
               </article>
+
+              <AntaWeatherCard activeSector={sector} />
             </div>
           </div>
         </section>
 
-        {/* SECTION 5.5: Sobre ALASO, Brand Values & Official Advisors */}
-        <BrandStorySection
+        {/* ACT 4: Unified Audiovisual Evidence — Drone Flyover Videos + Media Archive */}
+        <section id="showcase" ref={showcaseRef} className="showcase-pin">
+          <div className="showcase-viewport" id="showcase-viewport">
+            <div className="showcase-frames" id="showcase-frames">
+              {showcaseSlides.map((slide, i) => {
+                const ytEmbed = getYoutubeEmbedUrl(slide.url);
+                return (
+                  <figure
+                    key={`${slide.id}-${i}`}
+                    ref={(el: HTMLElement | null) => {
+                      frameRefs.current[i] = el;
+                    }}
+                    className={`showcase-frame${i === 0 ? ' is-active' : ''}`}
+                    data-index={i}
+                  >
+                    {ytEmbed ? (
+                      showcaseInView && activeStage === i ? (
+                        <iframe
+                          src={ytEmbed}
+                          title={slide.title}
+                          className="showcase-img"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      ) : (
+                        <img
+                          src={slide.poster || REAL_ASSETS.orthoFullBlock}
+                          alt={slide.alt}
+                          loading={i === 0 ? 'eager' : 'lazy'}
+                          decoding="async"
+                          referrerPolicy="no-referrer"
+                          className="showcase-img"
+                        />
+                      )
+                    ) : showcaseInView && activeStage === i ? (
+                      <video
+                        src={slide.url}
+                        poster={slide.poster}
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                        preload="metadata"
+                        className="showcase-img"
+                      />
+                    ) : (
+                      <img
+                        src={slide.poster || REAL_ASSETS.orthoFullBlock}
+                        alt={slide.alt}
+                        loading={i === 0 ? 'eager' : 'lazy'}
+                        decoding="async"
+                        referrerPolicy="no-referrer"
+                        className="showcase-img"
+                      />
+                    )}
+                  </figure>
+                );
+              })}
+            </div>
+
+            <div className="showcase-hud">
+              <div
+                className={`showcase-caption${captionBlur ? ' is-blurring' : ''}`}
+                id="showcase-caption"
+              >
+                <span className="showcase-type-kicker tabular-nums">
+                  Sobrevuelos en Dron 4K · Video {activeStage + 1} de{' '}
+                  {showcaseSlides.length}
+                </span>
+                <h2 className="caption-title" id="caption-title">
+                  {showcaseSlides[activeStage]?.title}
+                </h2>
+                <p className="caption-sub" id="caption-sub">
+                  {showcaseSlides[activeStage]?.subtitle}
+                </p>
+              </div>
+
+              <div
+                className="showcase-dots"
+                role="tablist"
+                aria-label="Seleccionar video de sobrevuelo en dron"
+              >
+                {showcaseSlides.map((slide, i) => (
+                  <button
+                    key={`${slide.id}-tab-${i}`}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeStage === i}
+                    className={`stage-video-tab tabular-nums${
+                      activeStage === i ? ' is-active' : ''
+                    }`}
+                    aria-label={`Ver sobrevuelo ${i + 1}: ${slide.title}`}
+                    onClick={() => selectStage(i)}
+                  >
+                    <span className="stage-video-num">
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                    <span className="stage-video-name">
+                      {slide.title.split('·')[0].trim()}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <MediaStudioSection
+          user={user}
+          authReady={authReady}
+          onShowcaseAssetsChange={handleShowcaseAssetsChange}
+        />
+
+        {/* ACT 5: Human Trust, Purchase Process & Closing CTA */}
+        <AdvisorsSection
           selectedAgent={selectedAgent}
           onScheduleWithAgent={handleScheduleWithAgent}
         />
 
-        {/* SECTION 5.8: Verified Client Testimonials & Acquisition Stories */}
         <TestimonialsSection
           onConfigureParcel={handleConfigureParcel}
           onScheduleWithAgent={handleScheduleWithAgent}
         />
 
-        {/* SECTION 6: Interactive Lot & Residence Configurator */}
-        <section id="configurador" className="order-section">
-          <div className="container order-grid">
-            <div className="order-preview" id="order-preview">
-              <img
-                src={configuratorImage}
-                alt={configuratorAlt}
-                loading="lazy"
-                decoding="async"
-                referrerPolicy="no-referrer"
-                className="order-estate-img"
-                style={{ transform: `scale(${activeScale})` }}
-              />
-              <div className="order-preview-caption">
-                <span>{activeSectorInfo.name}</span>
-                <span aria-hidden="true">·</span>
-                <span className="tabular-nums">{areaSqm} m²</span>
-              </div>
-            </div>
+        <PurchaseFaqSection onOpenDossier={() => setDrawerOpen(true)} />
 
-            <div className="order-panel">
-              <div className="eyebrow-rule-row">
-                <span className="eyebrow-text">Configurador de inversión</span>
-                <span className="eyebrow-rule" aria-hidden="true" />
-              </div>
-              <h2 className="section-title">Diseña tu propiedad en Anta</h2>
-              <p className="order-price tabular-nums" id="order-price">
-                {formatUsd(estimatedUsd)}
-              </p>
-
-              <div className="config-group">
-                <span className="config-label">Sector del Valle</span>
-                <div className="option-row">
-                  {(Object.keys(SECTORS) as SectorId[]).map((key) => {
-                    const meta = SECTORS[key];
-                    return (
-                      <button
-                        key={key}
-                        type="button"
-                        className={`pill-option${
-                          sector === key ? ' is-active' : ''
-                        }`}
-                        onClick={() => setSector(key)}
-                      >
-                        <span
-                          className="dot"
-                          style={{ background: meta.dotColor }}
-                        />
-                        <span>{meta.shortName}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="config-group">
-                <span className="config-label">Superficie del Lote</span>
-                <div className="option-row">
-                  {AREA_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.sqm}
-                      type="button"
-                      className={`pill-option tabular-nums${
-                        areaSqm === opt.sqm ? ' is-active' : ''
-                      }`}
-                      onClick={() => setAreaSqm(opt.sqm)}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="config-group">
-                <span className="config-label">Modalidad de Entrega</span>
-                <div className="option-row">
-                  <button
-                    type="button"
-                    className={`pill-option${
-                      modality === 'terreno' ? ' is-active' : ''
-                    }`}
-                    onClick={() => setModality('terreno')}
-                  >
-                    Terreno Habilitado
-                  </button>
-                  <button
-                    type="button"
-                    className={`pill-option${
-                      modality === 'villa' ? ' is-active' : ''
-                    }`}
-                    onClick={() => setModality('villa')}
-                  >
-                    Terreno + Villa Modular (+USD 68,000)
-                  </button>
-                </div>
-              </div>
-
-              <div className="spec-list">
-                <div className="spec-row">
-                  <span className="spec-key">Precio por m²</span>
-                  <span className="spec-val tabular-nums">
-                    USD {activeSectorInfo.pricePerSqmUsd} / m²
-                  </span>
-                </div>
-                <div className="spec-row">
-                  <span className="spec-key">Situación legal</span>
-                  <span className="spec-val">
-                    Título independiente · SUNARP Cusco
-                  </span>
-                </div>
-                <div className="spec-row">
-                  <span className="spec-key">Servicios básicos</span>
-                  <span className="spec-val">
-                    Acceso afirmado, energía y fibra óptica
-                  </span>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                className="btn btn-primary btn-full"
-                id="add-to-dossier-btn"
-                onClick={addCurrentToDossier}
-              >
-                <span>
-                  Agregar al Dossier y Agendar Visita — {formatUsd(estimatedUsd)}
-                </span>
-                <ArrowRight size={16} strokeWidth={2} />
-              </button>
-            </div>
-          </div>
-        </section>
-
-        {/* SECTION 6.5: ALASO Granate Architectural CTA Banner */}
         <section className="alaso-cta-section" aria-label="Asesoría de proyecto">
           <div className="container">
             <div className="alaso-cta-banner">
@@ -1308,13 +1665,6 @@ export default function App() {
             </div>
           </div>
         </section>
-
-        {/* SECTION 7: Media Studio (Real Drone Videos & Aerial Gallery + Admin CMS) */}
-        <MediaStudioSection
-          user={user}
-          authReady={authReady}
-          onShowcaseAssetsChange={handleShowcaseAssetsChange}
-        />
       </main>
 
       <footer className="site-footer">
@@ -1329,20 +1679,23 @@ export default function App() {
           </div>
 
           <nav className="footer-nav" aria-label="Navegación pie de página">
-            <a href="#showcase" className="footer-link">
-              Sobrevuelos
-            </a>
-            <a href="#mapa" className="footer-link">
-              Mapa
-            </a>
             <a href="#nosotros" className="footer-link">
               Nosotros
             </a>
             <a href="#configurador" className="footer-link">
               Terrenos
             </a>
+            <a href="#mapa" className="footer-link">
+              Mapa
+            </a>
+            <a href="#showcase" className="footer-link">
+              Sobrevuelos
+            </a>
             <a href="#estudio" className="footer-link">
               Estudio
+            </a>
+            <a href="#proceso" className="footer-link">
+              Proceso
             </a>
           </nav>
 
@@ -1353,6 +1706,24 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {toastMessage && (
+        <div className="alaso-toast" role="status" aria-live="polite">
+          <Check size={15} strokeWidth={2.2} />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {showBackToTop && (
+        <button
+          type="button"
+          className="back-to-top-btn"
+          aria-label="Volver arriba"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        >
+          <ArrowUp size={18} strokeWidth={2} />
+        </button>
+      )}
 
       {/* Slide-Over Dossier & Visit Scheduling Drawer */}
       <div
@@ -1412,7 +1783,7 @@ export default function App() {
                       {item.modality === 'villa'
                         ? 'Terreno + Villa'
                         : 'Solo Terreno'}{' '}
-                      · {formatUsd(item.estimatedUsd)}
+                      · {formatAmount(item.estimatedUsd, currency)}
                     </div>
                     <button
                       type="button"
@@ -1533,7 +1904,7 @@ export default function App() {
                       <strong>{SECTORS[inq.sector]?.name || inq.sector}</strong>
                       <div className="saved-inquiry-meta tabular-nums">
                         {inq.areaSqm} m² · Visita: {inq.visitDate} ·{' '}
-                        {formatUsd(inq.estimatedUsd)}
+                        {formatAmount(inq.estimatedUsd, 'USD')}
                       </div>
                     </div>
                     <span className="saved-inquiry-status">
